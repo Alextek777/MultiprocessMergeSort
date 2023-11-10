@@ -1,15 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <errno.h>
 
 enum EXITSTATUS{ OK=0, FILE_READ_ERROR, NO_FILE_SPECIFIED };
-enum RUNMODE{ SINGLEPROCESS, MULTIPROCESS};
-
-
-enum RUNMODE mode = SINGLEPROCESS;
 int n=0;
 
 double* getValues(const char* fileName){
@@ -41,66 +34,16 @@ double* getValues(const char* fileName){
 
 
 void sort(double* array){
-	switch(mode){
-		case SINGLEPROCESS:
-		printf("Running in SingleProcess Mode\n");
-		MergeSort(array, 0, n-1);
-		break;	
-		
-		case MULTIPROCESS:
-		printf("Running in MultiProcess Mode\n");	
-		multiProcessMergeSort(array, 0, n-1);
-		break;
-
-		default:
-		printf("Running in default(SingleProcess) Mode\n");
-		MergeSort(array, 0, n-1);
-		break;
-	}
-}
-
-void multiProcessMergeSort(const char* array, const int begin, const int end){
-	if(begin >=end) return;
-	int fd[2];
-	if(pipe(fd) == -1){
-		printf("Error! couldn`t open pipe\n");
-		return;
-	}
-
-	int mid = begin+(end-begin)/2;
-
-	int pid = fork();
-	if(pid == -1){
-		printf("Error! fork didn`t work!\n");
-		return;
-	}	
-
-	if(pid == 0){						//child is calculating left part
-		printf("process PID : %d\n", pid);
-		close(fd[0]);
-		MergeSort(array, 0, mid);
-		write(fd[1], &array, sizeof(double) * mid);
-		close(fd[1]);
-		return;
-	}
-	else{							//parent is calculating right part
-		close(fd[1]);
-		printf("process PID : %d\n", pid);
-		MergeSort(array, mid + 1, end);
-		wait(NULL);
-		read(fd[0], &array, sizeof(double) * mid);
-		close(fd[0]);
-	}
-	merge(array, begin, mid, end);	
+	MergeSort(array, 0, n-1);
 }
 
 void MergeSort(double* array, const int begin, const int end){
-	if(begin >= end) return;
+	if(begin >=end) return;
 
-	int mid = begin + (end - begin) / 2;
-	MergeSort(array, begin, mid);
-	MergeSort(array, mid + 1, end);
-	merge(array, begin, mid, end);
+	int mid = begin+(end-begin)/2;
+	MergeSort(array,begin,mid);
+	MergeSort(array,mid + 1, end);
+	merge(array,begin,mid,end);
 
 }
 
@@ -174,14 +117,10 @@ int main(int argc, char** argv){
 		printf("you didn`t pass file to sort\n");
 		return NO_FILE_SPECIFIED;
 	}
-	
-	if(argc == 3)
-		mode = atoi(argv[2]);
-	
+		
 	char* filePath = argv[1];
-
 	double *array = getValues(filePath);
-
+	printf("opening file %s", filePath);
 	if(array == NULL){
 		printf("couldnt open file : %s/n", filePath);
 		return FILE_READ_ERROR;
@@ -194,5 +133,3 @@ int main(int argc, char** argv){
 	free(array);
 	return OK;
 }
-
-
