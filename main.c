@@ -6,7 +6,7 @@
 #include <errno.h>
 
 enum EXITSTATUS{ OK=0, FILE_READ_ERROR, NO_FILE_SPECIFIED };
-enum RUNMODE{ SINGLEPROCESS, MULTIPROCESS};
+enum RUNMODE{ SINGLEPROCESS, MULTIPROCESS };
 
 
 enum RUNMODE mode = SINGLEPROCESS;
@@ -174,8 +174,12 @@ int main(int argc, char** argv){
 		return NO_FILE_SPECIFIED;
 	}
 	
-	if(argc == 3)
-		mode = atoi(argv[2]);
+	if(argc == 3){
+		if(argv[2][0] == 's')
+			mode = SINGLEPROCESS;
+		else if(argv[2][0] == 'm')
+			mode = MULTIPROCESS;
+	}
 	
 	char* filePath = argv[1];
 
