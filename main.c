@@ -12,6 +12,12 @@ enum RUNMODE{ SINGLEPROCESS, MULTIPROCESS};
 enum RUNMODE mode = SINGLEPROCESS;
 int n=0;
 
+void printArray(const double* array, const int begin, const int end){
+	for(int i=begin;i<end;++i)
+		printf("%lf\n",array[i]);
+	printf("\n\n\n");
+}
+
 double* getValues(const char* fileName){
 	FILE* file = fopen(fileName, "r");
 	if(file == NULL){
@@ -59,7 +65,7 @@ void sort(double* array){
 	}
 }
 
-void multiProcessMergeSort(const char* array, const int begin, const int end){
+void multiProcessMergeSort(double* array, const int begin, const int end){
 	if(begin >=end) return;
 	int fd[2];
 	if(pipe(fd) == -1){
@@ -67,7 +73,7 @@ void multiProcessMergeSort(const char* array, const int begin, const int end){
 		return;
 	}
 
-	int mid = begin+(end-begin)/2;
+	int mid = begin + (end-begin) / 2;
 
 	int pid = fork();
 	if(pid == -1){
@@ -76,21 +82,22 @@ void multiProcessMergeSort(const char* array, const int begin, const int end){
 	}	
 
 	if(pid == 0){						//child is calculating left part
-		printf("process PID : %d\n", pid);
+		MergeSort(array, begin, mid);
+		write(fd[1], array, sizeof(double) * (mid + 1));
+		
 		close(fd[0]);
-		MergeSort(array, 0, mid);
-		write(fd[1], &array, sizeof(double) * mid);
 		close(fd[1]);
-		return;
+		exit(0);
 	}
 	else{							//parent is calculating right part
-		close(fd[1]);
-		printf("process PID : %d\n", pid);
 		MergeSort(array, mid + 1, end);
-		wait(NULL);
-		read(fd[0], &array, sizeof(double) * mid);
+		read(fd[0], array, sizeof(double) * (mid + 1));
+
 		close(fd[0]);
+		close(fd[1]);
+		wait(NULL);
 	}
+
 	merge(array, begin, mid, end);	
 }
 
@@ -101,7 +108,6 @@ void MergeSort(double* array, const int begin, const int end){
 	MergeSort(array, begin, mid);
 	MergeSort(array, mid + 1, end);
 	merge(array, begin, mid, end);
-
 }
 
 void merge(double* array, const int left, const int mid, const int right){
@@ -161,13 +167,6 @@ void merge(double* array, const int left, const int mid, const int right){
 }
 
 
-void printArray(const double* array){
-	for(int i=0;
-	    i<n;
-	    ++i)
-		printf("%lf\n",array[i]);
-	printf("\n");
-}
 
 int main(int argc, char** argv){
 	if(argc < 2){
@@ -183,13 +182,13 @@ int main(int argc, char** argv){
 	double *array = getValues(filePath);
 
 	if(array == NULL){
-		printf("couldnt open file : %s/n", filePath);
+		printf("couldnt open file : %s\n", filePath);
 		return FILE_READ_ERROR;
 	}
 
 	sort(array);
 
-	//printArray(array);
+	printArray(array, 0, n);
 	
 	free(array);
 	return OK;
